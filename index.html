@@ -75,10 +75,12 @@
   <button id="open-sheet-btn">📝 填寫觀察學習單</button>
 
   <!-- ⬇️ 第 45 列：請替換為 targets.mind 的 Raw 直連網址 -->
-  <a-scene mindar-image="imageTargetSrc: https://github.com/direction00316-boop/ar-water-plant/raw/refs/heads/main/targets.mind;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+<a-scene mindar-image="imageTargetSrc: ./targets.mind;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
     <a-assets>
       <!-- ⬇️ 第 48 列：請替換為 plant.glb 的 Raw 直連網址 -->
-      <a-asset-item id="plant-model" src=" https://github.com/direction00316-boop/ar-water-plant/raw/refs/heads/main/plant.glb"></a-asset-item>
+     <a-asset-item id="plant-model" src="./plant.glb"></a-asset-item>
+
+3. 檢查第 130 列 (GAS 學習單接收網址)
     </a-assets>
 
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
