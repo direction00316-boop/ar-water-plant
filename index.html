@@ -4,9 +4,11 @@
   <meta charset="utf-8">
   <title>大萍水箱 AR 自然實驗平台</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <!-- 載入 A-Frame 與 MindAR 套件 -->
+  
+  <!-- 載入 A-Frame、MindAR 與 手勢控制套件 (Gesture Handler) -->
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-aframe.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/fcor/arjs-gestures@master/dist/arjs-gestures.js"></script>
 
   <style>
     body { margin: 0; overflow: hidden; font-family: "Microsoft JhengHei", sans-serif; background: #000; }
@@ -58,15 +60,13 @@
 </head>
 <body>
 
-  <!-- 觀察指引面板 -->
   <div id="guide-panel">
     <h3>🔬 自然實驗任務：水生植物觀察</h3>
-    <p>1. 將鏡頭對準<b>學習單上的大萍圖案</b>。<br>
+    <p>1. 對準圖卡開相機，可在螢幕上<b>單指旋轉、雙指縮放</b>觀看全貌。<br>
        2. 移動下方<b>水位滑桿</b>，觀察大萍隨水面升降、根部懸浮於水中的特點。<br>
        3. 點擊右下角按鈕填寫學習單。</p>
   </div>
 
-  <!-- 水位控制面板 -->
   <div id="water-control-panel">
     <label for="waterLevel">水箱水位：</label>
     <input type="range" id="waterLevel" min="1.0" max="4.0" step="0.1" value="2.5">
@@ -74,27 +74,29 @@
 
   <button id="open-sheet-btn">📝 填寫觀察學習單</button>
 
-  <!-- ⬇️ 第 45 列：請替換為 targets.mind 的 Raw 直連網址 -->
-<a-scene mindar-image="imageTargetSrc: ./targets.mind;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+  <!-- 啟用手勢控制套件 (gesture-detector) -->
+  <a-scene mindar-image="imageTargetSrc: ./targets.mind;" gesture-detector color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
     <a-assets>
-      <!-- ⬇️ 第 48 列：請替換為 plant.glb 的 Raw 直連網址 -->
-     <a-asset-item id="plant-model" src="./plant.glb"></a-asset-item>
-
-3. 檢查第 130 列 (GAS 學習單接收網址)
+      <a-asset-item id="plant-model" src="./plant.glb"></a-asset-item>
     </a-assets>
 
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <!-- AR 辨識目標內部物體 -->
+    <!-- AR 辨識目標內部物體：整體 scale 縮小至 0.05 方便看清全貌，並支援 gesture-handler 手勢 -->
     <a-entity mindar-image-target="targetIndex: 0">
-      <a-box position="0 0 0" width="2" height="2.5" depth="2" material="color: #e0f7fa; transparent: true; opacity: 0.2; side: double"></a-box>
-      <a-box position="0 -1.1 0" width="1.9" height="0.3" depth="1.9" material="color: #4e342e; roughness: 0.9"></a-box>
-      <a-plane id="water-surface" position="0 0 0" rotation="-90 0 0" width="1.9" height="1.9" material="color: #0288d1; transparent: true; opacity: 0.45; side: double"></a-plane>
-      <a-entity id="plant-entity" gltf-model="#plant-model" scale="0.25 0.25 0.25" position="0 0 0"></a-entity>
+      <a-entity id="ar-main-group" position="0 -0.2 -0.5" scale="0.05 0.05 0.05" class="clickable" gesture-handler="minScale: 0.01; maxScale: 0.3">
+        <!-- (1) 透明水箱 -->
+        <a-box position="0 0 0" width="2" height="2.5" depth="2" material="color: #e0f7fa; transparent: true; opacity: 0.25; side: double"></a-box>
+        <!-- (2) 底層土壤 -->
+        <a-box position="0 -1.1 0" width="1.9" height="0.3" depth="1.9" material="color: #4e342e; roughness: 0.9"></a-box>
+        <!-- (3) 動態水面 -->
+        <a-plane id="water-surface" position="0 0 0" rotation="-90 0 0" width="1.9" height="1.9" material="color: #0288d1; transparent: true; opacity: 0.5; side: double"></a-plane>
+        <!-- (4) 大萍模型 -->
+        <a-entity id="plant-entity" gltf-model="#plant-model" scale="0.25 0.25 0.25" position="0 0 0"></a-entity>
+      </a-entity>
     </a-entity>
   </a-scene>
 
-  <!-- 學習單 Modal 彈窗 -->
   <div id="modal">
     <div class="modal-box">
       <button class="btn-close" onclick="closeModal()">✕ 關閉</button>
@@ -126,13 +128,12 @@
           <label>3. 請寫出你做出上述判斷的原因與依據：</label>
           <textarea id="reason" rows="3" placeholder="例如：大萍全株隨水面升降，根部懸浮在水中完全不接觸底土..." required></textarea>
         </div>
-        <button type="button" class="btn-submit" onclick="submitForm()">提送學習單至老師試算表</button>
+        <button type="button" class="btn-submit" onclick="submitForm()">提送學習單</button>
       </form>
     </div>
   </div>
 
   <script>
-    // 水位滑桿控制與 model 運動邏輯
     const waterLevelInput = document.getElementById('waterLevel');
     const waterSurface = document.getElementById('water-surface');
     const plantEntity = document.getElementById('plant-entity');
@@ -160,7 +161,7 @@
         return;
       }
 
-      // ⬇️ 第 130 列：請貼上步驟一獲得的 GAS Web App URL
+      // ⬇️ 第 134 列：請替換為您在 GAS 產生的 Web App 專屬網址
       const GAS_URL = "https://script.google.com/macros/s/AKfycbzU0bHeYP-9KeDhbGHaaNPJclP2iwQLOUVRDAJApfINpg_B4_Idm1oDEuNDu_DaXCxp/exec";
 
       const payload = { studentId, studentName, waterObs, plantType, reason };
@@ -181,5 +182,7 @@
       });
     }
   </script>
+</body>
+</html>
 </body>
 </html>
