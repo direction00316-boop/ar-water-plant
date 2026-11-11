@@ -29,8 +29,6 @@ html, body {
   height: 100%;
   overflow: hidden;
   font-family: "Microsoft JhengHei", sans-serif;
-
-  /* 不使用黑色背景覆蓋 MindAR 影片 */
   background: transparent;
 }
 
@@ -47,10 +45,7 @@ html, body {
   overflow: hidden;
 }
 
-/*
-  不自行設定 video 或 canvas 的 z-index。
-  讓 MindAR 管理相機影片與 AR 畫布。
-*/
+/* 讓 MindAR 自行管理相機影片與 AR 畫布 */
 
 a-scene {
   width: 100%;
@@ -188,50 +183,7 @@ a-scene {
 }
 
 /* =================================
-   7. 相機診斷面板
-   ================================= */
-
-#diagnostic-panel {
-  display: none;
-  position: fixed;
-  top: 115px;
-  left: 10px;
-  right: 10px;
-  max-height: 180px;
-  overflow-y: auto;
-  padding: 12px;
-  border-radius: 10px;
-  background: rgba(0,0,0,0.82);
-  color: white;
-  z-index: 3000;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-#diagnostic-title {
-  font-size: 14px;
-  font-weight: bold;
-  color: #90caf9;
-  margin-bottom: 6px;
-}
-
-#diagnostic-result {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-family: monospace;
-}
-
-#diagnostic-close {
-  margin-top: 8px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 5px;
-  background: #666;
-  color: white;
-}
-
-/* =================================
-   8. 學習單視窗
+   7. 學習單視窗
    ================================= */
 
 #modal {
@@ -301,7 +253,7 @@ a-scene {
 <body>
 
 <!-- =================================
-     9. AR 場景
+     8. AR 場景
      ================================= -->
 
 <div id="ar-container">
@@ -349,14 +301,14 @@ a-scene {
       id="plant-target"
       mindar-image-target="targetIndex: 0">
 
-      <!-- 模型群組 -->
+      <!-- 模型群組：放大整體水箱 -->
 
       <a-entity
         id="ar-main-group"
         position="0 0 0.1"
-        scale="0.015 0.015 0.015"
+        scale="0.4 0.4 0.4"
         class="clickable"
-        gesture-handler="minScale: 0.005; maxScale: 0.1">
+        gesture-handler="minScale: 0.2; maxScale: 1.2">
 
         <!-- 透明水箱 -->
 
@@ -402,12 +354,12 @@ a-scene {
           ">
         </a-plane>
 
-        <!-- 大萍模型 -->
+        <!-- 大萍模型：放大模型本身 -->
 
         <a-entity
           id="plant-entity"
           gltf-model="#plant-model"
-          scale="0.25 0.25 0.25"
+          scale="0.5 0.5 0.5"
           position="0 0 0">
         </a-entity>
 
@@ -420,7 +372,7 @@ a-scene {
 </div>
 
 <!-- =================================
-     10. 操作說明
+     9. 操作說明
      ================================= -->
 
 <div id="guide-panel">
@@ -436,7 +388,7 @@ a-scene {
 </div>
 
 <!-- =================================
-     11. 相機啟動提示
+     10. 相機啟動提示
      ================================= -->
 
 <div id="camera-status">
@@ -455,27 +407,7 @@ a-scene {
 </div>
 
 <!-- =================================
-     12. 相機診斷面板
-     ================================= -->
-
-<div id="diagnostic-panel">
-
-  <div id="diagnostic-title">
-    相機影片診斷結果
-  </div>
-
-  <div id="diagnostic-result">
-    等待 AR 相機啟動……
-  </div>
-
-  <button id="diagnostic-close" type="button">
-    隱藏診斷資訊
-  </button>
-
-</div>
-
-<!-- =================================
-     13. 水位控制
+     11. 水位控制
      ================================= -->
 
 <div id="water-control-panel">
@@ -493,7 +425,7 @@ a-scene {
 </div>
 
 <!-- =================================
-     14. 學習單按鈕
+     12. 學習單按鈕
      ================================= -->
 
 <button id="open-sheet-btn" type="button">
@@ -501,7 +433,7 @@ a-scene {
 </button>
 
 <!-- =================================
-     15. 學習單視窗
+     13. 學習單視窗
      ================================= -->
 
 <div id="modal">
@@ -608,7 +540,7 @@ a-scene {
 </div>
 
 <!-- =================================
-     16. JavaScript
+     14. JavaScript
      ================================= -->
 
 <script>
@@ -623,9 +555,6 @@ const cameraStatus = document.getElementById("camera-status");
 const cameraTitle = document.getElementById("camera-title");
 const cameraMessage = document.getElementById("camera-message");
 const retryButton = document.getElementById("retry-camera");
-
-const diagnosticPanel = document.getElementById("diagnostic-panel");
-const diagnosticResult = document.getElementById("diagnostic-result");
 
 const targetEl = document.getElementById("plant-target");
 const plantEntity = document.getElementById("plant-entity");
@@ -712,172 +641,7 @@ function getARSystem() {
 
 
 /* =================================
-   D. 相機影片診斷
-   ================================= */
-
-function inspectARVideo() {
-
-  const videos = document.querySelectorAll("video");
-
-  const results = [];
-
-  console.log("========== 相機影片診斷 ==========");
-
-  console.log("找到影片數量：", videos.length);
-
-  if (videos.length === 0) {
-
-    results.push("找不到 video 影片元素。");
-
-  }
-
-  videos.forEach(function(video, index) {
-
-    const style = window.getComputedStyle(video);
-
-    const rect = video.getBoundingClientRect();
-
-    const stream = video.srcObject;
-
-    const info = {
-
-      index: index,
-
-      className: video.className,
-
-      paused: video.paused,
-
-      readyState: video.readyState,
-
-      videoWidth: video.videoWidth,
-
-      videoHeight: video.videoHeight,
-
-      currentTime: video.currentTime,
-
-      hasStream: !!stream,
-
-      streamActive: stream ? stream.active : false,
-
-      display: style.display,
-
-      visibility: style.visibility,
-
-      opacity: style.opacity,
-
-      zIndex: style.zIndex,
-
-      position: style.position,
-
-      objectFit: style.objectFit,
-
-      rectWidth: rect.width,
-
-      rectHeight: rect.height
-
-    };
-
-    console.log("影片 " + index, info);
-
-    results.push(
-      "【影片 " + index + "】\n" +
-      "class：" + video.className + "\n" +
-      "paused：" + video.paused + "\n" +
-      "readyState：" + video.readyState + "\n" +
-      "videoWidth：" + video.videoWidth + "\n" +
-      "videoHeight：" + video.videoHeight + "\n" +
-      "currentTime：" + video.currentTime + "\n" +
-      "hasStream：" + !!stream + "\n" +
-      "streamActive：" + (stream ? stream.active : false) + "\n" +
-      "display：" + style.display + "\n" +
-      "visibility：" + style.visibility + "\n" +
-      "opacity：" + style.opacity + "\n" +
-      "zIndex：" + style.zIndex + "\n" +
-      "position：" + style.position + "\n" +
-      "畫面寬高：" + rect.width + " × " + rect.height
-    );
-
-    if (stream) {
-
-      const tracks = stream.getVideoTracks();
-
-      tracks.forEach(function(track, trackIndex) {
-
-        const trackInfo = {
-
-          label: track.label,
-
-          enabled: track.enabled,
-
-          muted: track.muted,
-
-          readyState: track.readyState,
-
-          settings: track.getSettings()
-
-        };
-
-        console.log(
-          "影片 " + index + " 串流軌道 " + trackIndex,
-          trackInfo
-        );
-
-        results.push(
-          "串流軌道：" + track.label + "\n" +
-          "enabled：" + track.enabled + "\n" +
-          "muted：" + track.muted + "\n" +
-          "track readyState：" + track.readyState + "\n" +
-          "相機設定：" + JSON.stringify(track.getSettings())
-        );
-
-      });
-
-    }
-
-  });
-
-
-  /*
-    檢查畫面中央最上層的元素。
-    用來輔助判斷影片是否被其他元素遮擋。
-  */
-
-  const centerElement = document.elementFromPoint(
-    window.innerWidth / 2,
-    window.innerHeight / 2
-  );
-
-  if (centerElement) {
-
-    console.log(
-      "[畫面中央最上層元素]",
-      centerElement
-    );
-
-    results.push(
-      "畫面中央最上層元素：" +
-      centerElement.tagName +
-      (centerElement.id ? "#" + centerElement.id : "")
-    );
-
-  }
-
-
-  /*
-    顯示診斷資訊
-  */
-
-  diagnosticResult.textContent = results.join("\n\n");
-
-  diagnosticPanel.style.display = "block";
-
-  console.log("========== 診斷結束 ==========");
-
-}
-
-
-/* =================================
-   E. AR 啟動
+   D. AR 啟動
    ================================= */
 
 async function startAR() {
@@ -896,7 +660,6 @@ async function startAR() {
 
   }
 
-
   if (
     !window.isSecureContext ||
     !navigator.mediaDevices ||
@@ -912,7 +675,6 @@ async function startAR() {
     return;
 
   }
-
 
   let arSystem;
 
@@ -934,7 +696,6 @@ async function startAR() {
 
   }
 
-
   arStarting = true;
 
   retryButton.disabled = true;
@@ -945,7 +706,6 @@ async function startAR() {
   );
 
   console.log("[AR] 開始啟動 MindAR。");
-
 
   /*
     設定啟動逾時監測。
@@ -964,12 +724,9 @@ async function startAR() {
         true
       );
 
-      inspectARVideo();
-
     }
 
   }, 25000);
-
 
   try {
 
@@ -1006,7 +763,7 @@ async function startAR() {
 
 
 /* =================================
-   F. AR 場景初始化
+   E. AR 場景初始化
    ================================= */
 
 function initializeAR() {
@@ -1051,7 +808,7 @@ if (sceneEl.hasLoaded) {
 
 
 /* =================================
-   G. AR 成功事件
+   F. AR 成功事件
    ================================= */
 
 sceneEl.addEventListener("arReady", function() {
@@ -1064,28 +821,8 @@ sceneEl.addEventListener("arReady", function() {
 
   showStatus(
     "✅ 相機啟動成功",
-    "正在檢查相機影片畫面……"
+    "請將鏡頭對準大萍 AR 圖卡。"
   );
-
-  /*
-    延遲檢查，讓影片有時間取得影像尺寸。
-  */
-
-  setTimeout(function() {
-
-    inspectARVideo();
-
-  }, 1500);
-
-  /*
-    再次檢查，觀察影片狀態是否持續變化。
-  */
-
-  setTimeout(function() {
-
-    inspectARVideo();
-
-  }, 4000);
 
   setTimeout(function() {
 
@@ -1097,7 +834,7 @@ sceneEl.addEventListener("arReady", function() {
 
 
 /* =================================
-   H. AR 錯誤事件
+   G. AR 錯誤事件
    ================================= */
 
 sceneEl.addEventListener("arError", function(event) {
@@ -1128,7 +865,7 @@ sceneEl.addEventListener("arError", function(event) {
 
 
 /* =================================
-   I. 手動啟動按鈕
+   H. 手動啟動按鈕
    ================================= */
 
 retryButton.addEventListener("click", function(event) {
@@ -1143,19 +880,7 @@ retryButton.addEventListener("click", function(event) {
 
 
 /* =================================
-   J. 診斷面板關閉
-   ================================= */
-
-document.getElementById("diagnostic-close")
-  .addEventListener("click", function() {
-
-    diagnosticPanel.style.display = "none";
-
-  });
-
-
-/* =================================
-   K. 圖卡辨識事件
+   I. 圖卡辨識事件
    ================================= */
 
 targetEl.addEventListener("targetFound", function() {
@@ -1172,7 +897,7 @@ targetEl.addEventListener("targetLost", function() {
 
 
 /* =================================
-   L. 大萍模型載入狀態
+   J. 大萍模型載入狀態
    ================================= */
 
 plantEntity.addEventListener("model-loaded", function() {
@@ -1189,7 +914,7 @@ plantEntity.addEventListener("model-error", function(event) {
 
 
 /* =================================
-   M. 水位控制
+   K. 水位控制
    ================================= */
 
 const waterLevelInput = document.getElementById("waterLevel");
@@ -1214,7 +939,7 @@ waterLevelInput.addEventListener("input", function(event) {
 
 
 /* =================================
-   N. 學習單視窗
+   L. 學習單視窗
    ================================= */
 
 const modal = document.getElementById("modal");
@@ -1233,7 +958,7 @@ function closeModal() {
 
 
 /* =================================
-   O. Google Sheets 提交
+   M. Google Sheets 提交
    ================================= */
 
 async function submitForm() {
@@ -1253,7 +978,6 @@ async function submitForm() {
   const reason =
     document.getElementById("reason").value.trim();
 
-
   if (
     !studentId ||
     !studentName ||
@@ -1268,10 +992,8 @@ async function submitForm() {
 
   }
 
-
   const GAS_URL =
     "https://script.google.com/macros/s/AKfycbzU0bHeYP-9KeDhbGHaaNPJclP2iwQLOUVRDAJApfINpg_B4_Idm1oDEuNDu_DaXCxp/exec";
-
 
   const payload = {
 
@@ -1287,13 +1009,11 @@ async function submitForm() {
 
   };
 
-
   const submitButton = document.getElementById("submit-button");
 
   submitButton.disabled = true;
 
   submitButton.textContent = "資料送出中……";
-
 
   try {
 
@@ -1311,7 +1031,6 @@ async function submitForm() {
 
     });
 
-
     /*
       no-cors 模式無法讀取伺服器回傳內容，
       因此不能僅憑 fetch 完成就確認試算表已寫入。
@@ -1325,7 +1044,6 @@ async function submitForm() {
     closeModal();
 
     document.getElementById("reportForm").reset();
-
 
   } catch (error) {
 
@@ -1347,7 +1065,7 @@ async function submitForm() {
 
 
 /* =================================
-   P. 頁面錯誤監測
+   N. 頁面錯誤監測
    ================================= */
 
 window.addEventListener("error", function(event) {
@@ -1361,7 +1079,6 @@ window.addEventListener("error", function(event) {
 
 });
 
-
 window.addEventListener("unhandledrejection", function(event) {
 
   console.error(
@@ -1371,11 +1088,9 @@ window.addEventListener("unhandledrejection", function(event) {
 
 });
 
-
 console.log("[AR] 網頁程式初始化完成。");
 
 </script>
 
 </body>
 </html>
-
