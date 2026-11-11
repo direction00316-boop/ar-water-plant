@@ -74,30 +74,30 @@
 
   <button id="open-sheet-btn">📝 填寫觀察學習單</button>
 
-  <!-- 相機 AR 掃描場景 (讀取 ./targets.mind) -->
-  <a-scene mindar-image="imageTargetSrc: ./targets.mind;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+  <!-- AR 場景：自動要求相機權限並讀取同目錄下全新的 targets.mind -->
+  <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: yes; uiError: yes;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
 
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <!-- 🎯 當相機對準圖卡時自動觸發顯示 -->
+    <!-- 當相機掃描到對應大萍圖案時自動秀出 3D 模型 -->
     <a-entity mindar-image-target="targetIndex: 0">
       
-      <!-- (1) 透明 3D 水箱 -->
-      <a-box position="0 0 0" width="1" height="1.2" depth="1" material="color: #e0f7fa; transparent: true; opacity: 0.3; side: double"></a-box>
+      <!-- 1. 透明水箱 -->
+      <a-box position="0 0 0" width="1" height="1.2" depth="1" material="color: #e0f7fa; transparent: true; opacity: 0.35; side: double"></a-box>
       
-      <!-- (2) 底層底土 (不接觸根部) -->
+      <!-- 2. 底層底土 -->
       <a-box position="0 -0.55 0" width="0.95" height="0.1" depth="0.95" material="color: #4e342e; roughness: 0.9"></a-box>
 
-      <!-- (3) 動態升降水面 -->
-      <a-plane id="water-surface" position="0 0 0" rotation="-90 0 0" width="0.95" height="0.95" material="color: #0288d1; transparent: true; opacity: 0.45; side: double"></a-plane>
+      <!-- 3. 動態升降水面 -->
+      <a-plane id="water-surface" position="0 0 0" rotation="-90 0 0" width="0.95" height="0.95" material="color: #0288d1; transparent: true; opacity: 0.5; side: double"></a-plane>
 
-      <!-- (4) 原生 3D 大萍植物組合 (隨水面浮動) -->
+      <!-- 4. 內建 A-Frame 原生幾何大萍模型（綠色圓錐葉片 + 深色懸浮鬚根） -->
       <a-entity id="plant-entity" position="0 0 0">
-        <!-- 倒心型扇狀大萍葉片 (綠色) -->
+        <!-- 葉片部分 -->
         <a-cone position="0 0.08 0" radius-bottom="0.25" radius-top="0.02" height="0.1" material="color: #76c043; side: double"></a-cone>
         <a-ring position="0 0.13 0" rotation="-90 0 0" radius-inner="0.05" radius-outer="0.28" material="color: #558b2f; side: double"></a-ring>
 
-        <!-- 懸浮鬚根 (深棕色鬚根群，下垂於水中但不觸底) -->
+        <!-- 懸浮鬚根部分（不接觸底部土壤） -->
         <a-cylinder position="0 -0.15 0" radius="0.06" height="0.3" material="color: #3e2723; transparent: true; opacity: 0.85"></a-cylinder>
         <a-cylinder position="0.05 -0.18 0.03" radius="0.01" height="0.35" material="color: #4e342e"></a-cylinder>
         <a-cylinder position="-0.04 -0.16 -0.05" radius="0.01" height="0.32" material="color: #4e342e"></a-cylinder>
@@ -107,7 +107,7 @@
     </a-entity>
   </a-scene>
 
-  <!-- 學習單 Modal 彈窗 -->
+  <!-- 學習單 Modal -->
   <div id="modal">
     <div class="modal-box">
       <button class="btn-close" onclick="closeModal()">✕ 關閉</button>
@@ -145,14 +145,13 @@
   </div>
 
   <script>
-    // 水位滑桿邏輯：完美將水面與大萍同步升降
     const waterLevelInput = document.getElementById('waterLevel');
     const waterSurface = document.getElementById('water-surface');
     const plantEntity = document.getElementById('plant-entity');
 
     waterLevelInput.addEventListener('input', (e) => {
       const level = parseFloat(e.target.value);
-      const yPos = (level - 2.5) * 0.2; // 精密調整升降幅度
+      const yPos = (level - 2.5) * 0.2;
       waterSurface.setAttribute('position', `0 ${yPos} 0`);
       plantEntity.setAttribute('position', `0 ${yPos} 0`);
     });
@@ -173,8 +172,8 @@
         return;
       }
 
-      // ⬇️ 第 120 列：請貼上您在 GAS 產生的 Web App 專屬網址
-      const GAS_URL = "https://script.google.com/macros/s/AKfycbzU0bHeYP-9KeDhbGHaaNPJclP2iwQLOUVRDAJApfINpg_B4_Idm1oDEuNDu_DaXCxp/exec";
+      // ⬇️ 第 121 列：貼上您的 Google Apps Script Web App 網址
+      const GAS_URL = "https://script.google.com/macros/s/AKfycbzU0bHeYP-9KeDhbGHaaNPJclP2iwQLOUVRDAJApfINpg_B4_Idm1oDEuNDu_DaXCxp/execE";
 
       const payload = { studentId, studentName, waterObs, plantType, reason };
 
