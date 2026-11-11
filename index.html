@@ -6,25 +6,24 @@
 <title>大萍水箱 AR 自然實驗平台</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
 
 <!-- ================================= -->
-<!-- 重要：MindAR 1.1.5 正確載入順序 -->
+<!-- MindAR 1.1.5 正確載入順序 -->
 <!-- ================================= -->
 
-<!-- 1. MindAR 核心 -->
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image.prod.js"></script>
 
-<!-- 2. A-Frame -->
 <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
 
-<!-- 3. MindAR 與 A-Frame 整合 -->
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-aframe.prod.js"></script>
 
-<!-- 4. 手勢控制 -->
 <script src="https://cdn.jsdelivr.net/gh/fcor/arjs-gestures@master/dist/arjs-gestures.js"></script>
 
 <style>
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 html, body {
   margin: 0;
@@ -36,13 +35,59 @@ html, body {
   background: #000;
 }
 
+/* =================================
+   1. 相機影片圖層
+   ================================= */
+
+/* MindAR 建立的相機影片 */
+video.mindar-video,
+video[id*="mindar"] {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  width: 100dvw !important;
+  height: 100dvh !important;
+  object-fit: cover !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 0 !important;
+  background: transparent !important;
+}
+
+/* =================================
+   2. A-Frame 畫面
+   ================================= */
+
 a-scene {
   position: fixed !important;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  width: 100dvw !important;
+  height: 100dvh !important;
+  z-index: 1 !important;
+  background: transparent !important;
 }
+
+/* 讓 3D 畫布不遮住相機影片 */
+a-scene canvas {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  width: 100dvw !important;
+  height: 100dvh !important;
+  background: transparent !important;
+}
+
+/* =================================
+   3. 操作說明
+   ================================= */
 
 #guide-panel {
   position: fixed;
@@ -68,6 +113,10 @@ a-scene {
   color: #333;
   line-height: 1.5;
 }
+
+/* =================================
+   4. 水位控制
+   ================================= */
 
 #water-control-panel {
   position: fixed;
@@ -96,6 +145,10 @@ a-scene {
   width: 100%;
 }
 
+/* =================================
+   5. 學習單按鈕
+   ================================= */
+
 #open-sheet-btn {
   position: fixed;
   bottom: 20px;
@@ -109,6 +162,10 @@ a-scene {
   font-weight: bold;
   z-index: 1000;
 }
+
+/* =================================
+   6. 相機啟動提示
+   ================================= */
 
 #camera-status {
   position: fixed;
@@ -140,7 +197,7 @@ a-scene {
 }
 
 #retry-camera {
-  display: none;
+  display: block;
   width: 100%;
   margin-top: 12px;
   padding: 14px;
@@ -153,6 +210,14 @@ a-scene {
   cursor: pointer;
   touch-action: manipulation;
 }
+
+#retry-camera:disabled {
+  opacity: 0.6;
+}
+
+/* =================================
+   7. 學習單視窗
+   ================================= */
 
 #modal {
   display: none;
@@ -220,7 +285,10 @@ a-scene {
 
 <body>
 
-<!-- 操作說明 -->
+<!-- =================================
+     操作說明
+     ================================= -->
+
 <div id="guide-panel">
   <h3>🔬 自然實驗任務：水生植物觀察</h3>
   <p>
@@ -230,27 +298,53 @@ a-scene {
   </p>
 </div>
 
-<!-- 相機提示 -->
+<!-- =================================
+     相機啟動提示
+     ================================= -->
+
 <div id="camera-status">
-  <h3 id="camera-title">📷 正在準備 AR 相機</h3>
-  <p id="camera-message">正在載入 AR 系統，請稍候。</p>
-  <button id="retry-camera" type="button">📷 點擊啟動相機</button>
+  <h3 id="camera-title">📷 大萍 AR 自然實驗</h3>
+
+  <p id="camera-message">
+    AR 系統正在準備中。
+    請點擊下方按鈕啟動相機。
+  </p>
+
+  <button id="retry-camera" type="button">
+    📷 點擊啟動相機
+  </button>
 </div>
 
-<!-- 水位控制 -->
+<!-- =================================
+     水位控制
+     ================================= -->
+
 <div id="water-control-panel">
   <label for="waterLevel">水箱水位：</label>
-  <input type="range" id="waterLevel"
-         min="1.0" max="4.0" step="0.1" value="2.5">
+
+  <input
+    type="range"
+    id="waterLevel"
+    min="1.0"
+    max="4.0"
+    step="0.1"
+    value="2.5">
 </div>
 
-<!-- 學習單按鈕 -->
+<!-- =================================
+     學習單按鈕
+     ================================= -->
+
 <button id="open-sheet-btn" type="button">
   📝 填寫觀察學習單
 </button>
 
-<!-- AR 場景 -->
+<!-- =================================
+     AR 場景
+     ================================= -->
+
 <a-scene
+  embedded
   mindar-image="
     imageTargetSrc: ./targets.mind;
     autoStart: false;
@@ -260,24 +354,39 @@ a-scene {
   "
   gesture-detector
   color-space="sRGB"
-  renderer="colorManagement: true, physicallyCorrectLights"
+  renderer="
+    alpha: true;
+    antialias: true;
+    colorManagement: true;
+    physicallyCorrectLights: true;
+  "
   vr-mode-ui="enabled: false"
   device-orientation-permission-ui="enabled: false">
 
-  <a-assets>
-    <a-asset-item id="plant-model" src="./plant.glb"></a-asset-item>
+  <a-assets timeout="20000">
+
+    <a-asset-item
+      id="plant-model"
+      src="./plant.glb">
+    </a-asset-item>
+
   </a-assets>
 
-  <a-camera position="0 0 0"
-            look-controls="enabled: false">
+  <!-- AR 相機 -->
+  <a-camera
+    position="0 0 0"
+    look-controls="enabled: false">
   </a-camera>
 
-  <a-entity id="plant-target"
-            mindar-image-target="targetIndex: 0">
+  <!-- 圖卡辨識 -->
+  <a-entity
+    id="plant-target"
+    mindar-image-target="targetIndex: 0">
 
+    <!-- 模型群組 -->
     <a-entity
       id="ar-main-group"
-      position="0 0 -0.2"
+      position="0 0 0.1"
       scale="0.015 0.015 0.015"
       class="clickable"
       gesture-handler="minScale: 0.005; maxScale: 0.1">
@@ -285,15 +394,27 @@ a-scene {
       <!-- 透明水箱 -->
       <a-box
         position="0 0 0"
-        width="2" height="2.5" depth="2"
-        material="color: #e0f7fa; transparent: true; opacity: 0.25; side: double">
+        width="2"
+        height="2.5"
+        depth="2"
+        material="
+          color: #e0f7fa;
+          transparent: true;
+          opacity: 0.25;
+          side: double;
+        ">
       </a-box>
 
       <!-- 底層土壤 -->
       <a-box
         position="0 -1.1 0"
-        width="1.9" height="0.3" depth="1.9"
-        material="color: #4e342e; roughness: 0.9">
+        width="1.9"
+        height="0.3"
+        depth="1.9"
+        material="
+          color: #4e342e;
+          roughness: 0.9;
+        ">
       </a-box>
 
       <!-- 水面 -->
@@ -301,8 +422,14 @@ a-scene {
         id="water-surface"
         position="0 0 0"
         rotation="-90 0 0"
-        width="1.9" height="1.9"
-        material="color: #0288d1; transparent: true; opacity: 0.5; side: double">
+        width="1.9"
+        height="1.9"
+        material="
+          color: #0288d1;
+          transparent: true;
+          opacity: 0.5;
+          side: double;
+        ">
       </a-plane>
 
       <!-- 大萍模型 -->
@@ -314,14 +441,24 @@ a-scene {
       </a-entity>
 
     </a-entity>
+
   </a-entity>
+
 </a-scene>
 
-<!-- 學習單 -->
+<!-- =================================
+     學習單視窗
+     ================================= -->
+
 <div id="modal">
+
   <div class="modal-box">
 
-    <button class="btn-close" onclick="closeModal()">✕ 關閉</button>
+    <button
+      class="btn-close"
+      onclick="closeModal()">
+      ✕ 關閉
+    </button>
 
     <h3 style="color:#2e7d32; margin-top:0;">
       📝 大萍水生植物觀察學習單
@@ -331,24 +468,41 @@ a-scene {
 
       <div class="form-item">
         <label>班級 / 座號：</label>
-        <input type="text" id="studentId"
-               placeholder="例：50108" required>
+
+        <input
+          type="text"
+          id="studentId"
+          placeholder="例：50108"
+          required>
       </div>
 
       <div class="form-item">
         <label>學生姓名：</label>
-        <input type="text" id="studentName"
-               placeholder="請輸入姓名" required>
+
+        <input
+          type="text"
+          id="studentName"
+          placeholder="請輸入姓名"
+          required>
       </div>
 
       <div class="form-item">
-        <label>1. 當調高或調低水箱水位時，大萍的莖、葉與懸浮氣根有何變化？</label>
-        <textarea id="waterObs" rows="3"
-                  placeholder="請描述觀察結果..." required></textarea>
+        <label>
+          1. 當調高或調低水箱水位時，大萍的莖、葉與懸浮氣根有何變化？
+        </label>
+
+        <textarea
+          id="waterObs"
+          rows="3"
+          placeholder="請描述觀察結果..."
+          required></textarea>
       </div>
 
       <div class="form-item">
-        <label>2. 根據觀察，你判斷大萍是屬於哪一類水生植物？</label>
+        <label>
+          2. 根據觀察，你判斷大萍是屬於哪一類水生植物？
+        </label>
+
         <select id="plantType" required>
           <option value="">-- 請選擇植物類型 --</option>
           <option value="漂浮性">漂浮性水生植物</option>
@@ -359,25 +513,38 @@ a-scene {
       </div>
 
       <div class="form-item">
-        <label>3. 請寫出你做出上述判斷的原因與依據：</label>
-        <textarea id="reason" rows="3"
-                  placeholder="請說明判斷依據..." required></textarea>
+        <label>
+          3. 請寫出你做出上述判斷的原因與依據：
+        </label>
+
+        <textarea
+          id="reason"
+          rows="3"
+          placeholder="請說明判斷依據..."
+          required></textarea>
       </div>
 
-      <button type="button" class="btn-submit"
-              onclick="submitForm()">
+      <button
+        type="button"
+        class="btn-submit"
+        onclick="submitForm()">
         提送學習單至老師試算表
       </button>
 
     </form>
+
   </div>
 </div>
 
+<!-- =================================
+     JavaScript
+     ================================= -->
+
 <script>
 
-// ======================================
-// 1. 取得元素
-// ======================================
+/* =================================
+   1. 取得網頁元素
+   ================================= */
 
 const sceneEl = document.querySelector("a-scene");
 
@@ -392,54 +559,153 @@ let arReady = false;
 let startTimer = null;
 
 
-// ======================================
-// 2. 狀態提示
-// ======================================
+/* =================================
+   2. 狀態提示
+   ================================= */
 
 function showStatus(title, message, showButton = false) {
+
   cameraStatus.style.display = "block";
+
   cameraTitle.textContent = title;
+
   cameraMessage.textContent = message;
+
   retryButton.style.display = showButton ? "block" : "none";
 }
 
 function hideStatus() {
+
   cameraStatus.style.display = "none";
 }
 
 function resetStart() {
+
   arStarting = false;
+
   retryButton.disabled = false;
 
   if (startTimer) {
+
     clearTimeout(startTimer);
+
     startTimer = null;
   }
 }
 
 
-// ======================================
-// 3. 確認 MindAR 系統
-// ======================================
+/* =================================
+   3. 設定 MindAR 相機影片顯示
+   ================================= */
+
+function setupCameraVideo() {
+
+  const videos = document.querySelectorAll("video");
+
+  videos.forEach(function(video) {
+
+    // 設定 iPad Safari 行動影片播放屬性
+    video.setAttribute("playsinline", "");
+
+    video.setAttribute("webkit-playsinline", "");
+
+    video.muted = true;
+
+    // 確保相機影片不被隱藏
+    video.style.position = "fixed";
+
+    video.style.top = "0";
+
+    video.style.left = "0";
+
+    video.style.width = "100vw";
+
+    video.style.height = "100vh";
+
+    video.style.objectFit = "cover";
+
+    video.style.display = "block";
+
+    video.style.visibility = "visible";
+
+    video.style.opacity = "1";
+
+    video.style.zIndex = "0";
+
+    console.log("[相機影片]", {
+      className: video.className,
+      paused: video.paused,
+      readyState: video.readyState,
+      width: video.videoWidth,
+      height: video.videoHeight,
+      srcObject: !!video.srcObject
+    });
+
+  });
+
+  // 確保 A-Frame Canvas 位於影片上方
+  const canvas = sceneEl.canvas;
+
+  if (canvas) {
+
+    canvas.style.position = "fixed";
+
+    canvas.style.top = "0";
+
+    canvas.style.left = "0";
+
+    canvas.style.width = "100vw";
+
+    canvas.style.height = "100vh";
+
+    canvas.style.zIndex = "1";
+
+    console.log("[AR Canvas] 已設定透明畫布圖層。");
+  }
+
+}
+
+
+/* =================================
+   4. 監測 MindAR 新增的影片
+   ================================= */
+
+const videoObserver = new MutationObserver(function() {
+
+  setupCameraVideo();
+
+});
+
+videoObserver.observe(document.body, {
+  childList: true,
+  subtree: true
+});
+
+
+/* =================================
+   5. 取得 MindAR 系統
+   ================================= */
 
 function getARSystem() {
 
   if (!window.AFRAME) {
+
     throw new Error("A-Frame 尚未載入。");
   }
 
-  if (!AFRAME.systems ||
-      !AFRAME.systems["mindar-image-system"]) {
-    throw new Error(
-      "MindAR 核心或 A-Frame 整合套件尚未正確載入。"
-    );
+  if (!sceneEl) {
+
+    throw new Error("找不到 AR 場景。");
   }
 
-  const system = sceneEl.systems["mindar-image-system"];
+  const systems = sceneEl.systems || {};
+
+  const system = systems["mindar-image-system"];
 
   if (!system || typeof system.start !== "function") {
+
     throw new Error(
-      "MindAR 系統尚未初始化，請檢查 a-scene 的 mindar-image 設定。"
+      "找不到 MindAR 啟動系統，請檢查 MindAR 整合檔案。"
     );
   }
 
@@ -447,20 +713,22 @@ function getARSystem() {
 }
 
 
-// ======================================
-// 4. 啟動相機
-// ======================================
+/* =================================
+   6. 啟動 AR 相機
+   ================================= */
 
-function startAR() {
+async function startAR() {
 
   if (arStarting || arReady) return;
 
   if (!sceneReady) {
+
     showStatus(
       "⏳ AR 系統載入中",
-      "請稍候，場景尚未完成初始化。",
+      "場景尚未完成初始化，請稍候。",
       true
     );
+
     return;
   }
 
@@ -473,25 +741,31 @@ function startAR() {
       "請使用 HTTPS 網址及支援相機功能的 Safari 瀏覽器。",
       true
     );
+
     return;
   }
 
   let arSystem;
 
   try {
+
     arSystem = getARSystem();
+
   } catch (error) {
-    console.error(error);
+
+    console.error("[MindAR 系統錯誤]", error);
 
     showStatus(
       "⚠️ MindAR 初始化失敗",
       error.message,
       true
     );
+
     return;
   }
 
   arStarting = true;
+
   retryButton.disabled = true;
 
   showStatus(
@@ -499,57 +773,80 @@ function startAR() {
     "請允許 Safari 使用相機，並稍候畫面載入。"
   );
 
+  console.log("[AR] 開始啟動 MindAR。");
+
   try {
 
-    // 直接啟動，保留按鈕點擊的使用者操作時機
+    /*
+      重要：
+      startAR 由使用者點擊按鈕直接觸發，
+      避免只靠 setTimeout 自動啟動。
+    */
+
     const result = arSystem.start();
 
-    if (result && typeof result.catch === "function") {
-      result.catch(function(error) {
-        console.error("AR 啟動錯誤：", error);
+    if (result && typeof result.then === "function") {
 
-        if (!arReady) {
-          resetStart();
-
-          showStatus(
-            "⚠️ 相機啟動失敗",
-            "錯誤：" + (error.message || String(error)),
-            true
-          );
-        }
-      });
+      await result;
     }
 
+    console.log("[AR] MindAR start() 已執行。");
+
+    // 再次檢查相機影片及 Canvas
+    setupCameraVideo();
+
     startTimer = setTimeout(function() {
+
       if (!arReady) {
+
+        const video = document.querySelector("video");
+
+        let videoInfo = "尚未找到影片元素。";
+
+        if (video) {
+
+          videoInfo =
+            "影片 readyState：" + video.readyState + "\n" +
+            "影片寬度：" + video.videoWidth + "\n" +
+            "影片高度：" + video.videoHeight + "\n" +
+            "影片是否暫停：" + video.paused + "\n" +
+            "是否有相機串流：" + !!video.srcObject;
+        }
+
+        console.error("[AR] 啟動逾時。", videoInfo);
+
         resetStart();
 
         showStatus(
-          "⚠️ 相機啟動逾時",
-          "請確認 Safari 相機權限、targets.mind 檔案及網路連線。",
+          "⚠️ AR 啟動逾時",
+          "尚未收到 arReady 事件。\n\n" +
+          videoInfo +
+          "\n\n請重新點擊啟動相機，並確認圖卡檔案及網路連線。",
           true
         );
       }
-    }, 20000);
+
+    }, 25000);
 
   } catch (error) {
 
-    console.error("MindAR start 錯誤：", error);
+    console.error("[AR 啟動失敗]", error);
 
     resetStart();
 
     showStatus(
-      "⚠️ 無法啟動相機",
-      error.message || String(error),
+      "⚠️ 相機啟動失敗",
+      "錯誤名稱：" + (error.name || "未知") +
+      "\n錯誤訊息：" + (error.message || String(error)),
       true
     );
   }
 }
 
 
-// ======================================
-// 5. 場景初始化
-// ======================================
+/* =================================
+   7. AR 場景初始化
+   ================================= */
 
 function initializeAR() {
 
@@ -557,24 +854,21 @@ function initializeAR() {
 
   sceneReady = true;
 
-  console.log("A-Frame 場景載入完成");
+  console.log("[AR] A-Frame 場景載入完成。");
 
-  // 再確認系統是否註冊
   try {
+
     getARSystem();
 
     showStatus(
       "📷 AR 系統準備完成",
-      "正在嘗試啟動相機..."
+      "請點擊下方按鈕啟動相機。",
+      true
     );
-
-    // 自動嘗試啟動；若瀏覽器要求使用者操作，
-    // 請使用畫面上的啟動按鈕。
-    setTimeout(startAR, 500);
 
   } catch (error) {
 
-    console.error("AR 初始化檢查失敗：", error);
+    console.error("[AR 初始化檢查失敗]", error);
 
     showStatus(
       "⚠️ AR 系統載入失敗",
@@ -582,25 +876,31 @@ function initializeAR() {
       true
     );
   }
+
+  setupCameraVideo();
 }
 
 sceneEl.addEventListener("loaded", initializeAR);
 
 if (sceneEl.hasLoaded) {
+
   initializeAR();
 }
 
 
-// ======================================
-// 6. AR 成功事件
-// ======================================
+/* =================================
+   8. AR 成功事件
+   ================================= */
 
 sceneEl.addEventListener("arReady", function() {
 
-  console.log("AR 相機成功啟動");
+  console.log("[AR] 相機成功啟動，AR 系統已準備完成。");
 
   arReady = true;
+
   resetStart();
+
+  setupCameraVideo();
 
   showStatus(
     "✅ 相機啟動成功",
@@ -608,36 +908,43 @@ sceneEl.addEventListener("arReady", function() {
   );
 
   setTimeout(hideStatus, 1800);
+
 });
 
 
-// ======================================
-// 7. AR 錯誤事件
-// ======================================
+/* =================================
+   9. AR 錯誤事件
+   ================================= */
 
 sceneEl.addEventListener("arError", function(event) {
 
-  console.error("MindAR 錯誤：", event);
+  console.error("[AR 錯誤事件]", event);
 
   if (arReady) return;
 
   resetStart();
 
-  const detail = event.detail
-    ? (event.detail.message || String(event.detail))
-    : "請檢查相機權限及圖卡資料。";
+  let detail = "請檢查相機權限、圖卡檔案及網路連線。";
+
+  if (event.detail) {
+
+    detail =
+      event.detail.message ||
+      JSON.stringify(event.detail);
+  }
 
   showStatus(
     "⚠️ AR 啟動失敗",
     detail,
     true
   );
+
 });
 
 
-// ======================================
-// 8. 手動啟動按鈕
-// ======================================
+/* =================================
+   10. 手動啟動按鈕
+   ================================= */
 
 retryButton.addEventListener("click", function(event) {
 
@@ -646,60 +953,97 @@ retryButton.addEventListener("click", function(event) {
   if (arReady || arStarting) return;
 
   startAR();
+
 });
 
 
-// ======================================
-// 9. 圖卡辨識
-// ======================================
+/* =================================
+   11. 圖卡辨識事件
+   ================================= */
 
 const targetEl = document.getElementById("plant-target");
 
 targetEl.addEventListener("targetFound", function() {
-  console.log("成功辨識大萍圖卡");
+
+  console.log("[AR] 成功辨識大萍圖卡。");
+
 });
 
 targetEl.addEventListener("targetLost", function() {
-  console.log("圖卡離開鏡頭");
+
+  console.log("[AR] 圖卡離開鏡頭。");
+
 });
 
 
-// ======================================
-// 10. 水位控制
-// ======================================
+/* =================================
+   12. 大萍模型載入狀態
+   ================================= */
 
-const waterLevelInput = document.getElementById("waterLevel");
-const waterSurface = document.getElementById("water-surface");
 const plantEntity = document.getElementById("plant-entity");
 
-waterLevelInput.addEventListener("input", function(e) {
+plantEntity.addEventListener("model-loaded", function() {
 
-  const level = parseFloat(e.target.value);
-  const yPos = (level - 2.5) * 0.5;
+  console.log("[模型] 大萍 GLB 模型載入成功。");
 
-  waterSurface.setAttribute("position", `0 ${yPos} 0`);
-  plantEntity.setAttribute("position", `0 ${yPos} 0`);
+});
+
+plantEntity.addEventListener("model-error", function(event) {
+
+  console.error("[模型] 大萍 GLB 模型載入失敗。", event);
+
 });
 
 
-// ======================================
-// 11. 學習單視窗
-// ======================================
+/* =================================
+   13. 水位控制
+   ================================= */
+
+const waterLevelInput = document.getElementById("waterLevel");
+
+const waterSurface = document.getElementById("water-surface");
+
+waterLevelInput.addEventListener("input", function(event) {
+
+  const level = parseFloat(event.target.value);
+
+  const yPos = (level - 2.5) * 0.5;
+
+  waterSurface.setAttribute(
+    "position",
+    `0 ${yPos} 0`
+  );
+
+  plantEntity.setAttribute(
+    "position",
+    `0 ${yPos} 0`
+  );
+
+});
+
+
+/* =================================
+   14. 學習單視窗
+   ================================= */
 
 const modal = document.getElementById("modal");
 
 document.getElementById("open-sheet-btn").onclick = function() {
+
   modal.style.display = "flex";
+
 };
 
 function closeModal() {
+
   modal.style.display = "none";
+
 }
 
 
-// ======================================
-// 12. Google Sheets 提交
-// ======================================
+/* =================================
+   15. Google Sheets 提交
+   ================================= */
 
 async function submitForm() {
 
@@ -718,10 +1062,16 @@ async function submitForm() {
   const reason =
     document.getElementById("reason").value.trim();
 
-  if (!studentId || !studentName ||
-      !waterObs || !plantType || !reason) {
+  if (
+    !studentId ||
+    !studentName ||
+    !waterObs ||
+    !plantType ||
+    !reason
+  ) {
 
     alert("請完整填寫所有學習單內容！");
+
     return;
   }
 
@@ -729,35 +1079,75 @@ async function submitForm() {
     "https://script.google.com/macros/s/AKfycbzU0bHeYP-9KeDhbGHaaNPJclP2iwQLOUVRDAJApfINpg_B4_Idm1oDEuNDu_DaXCxp/exec";
 
   const payload = {
+
     studentId,
     studentName,
     waterObs,
     plantType,
     reason
+
   };
 
   try {
 
     await fetch(GAS_URL, {
+
       method: "POST",
+
       mode: "no-cors",
+
       headers: {
         "Content-Type": "application/json"
       },
+
       body: JSON.stringify(payload)
+
     });
 
-    alert("已送出學習單，請老師確認試算表資料。");
+    alert(
+      "已送出學習單，請老師確認試算表資料。"
+    );
 
     closeModal();
+
     document.getElementById("reportForm").reset();
 
   } catch (error) {
 
-    console.error("提交失敗：", error);
-    alert("提交失敗，請檢查網路連線。");
+    console.error("[學習單提交失敗]", error);
+
+    alert(
+      "提交失敗，請檢查網路連線。"
+    );
   }
 }
+
+
+/* =================================
+   16. 頁面錯誤監測
+   ================================= */
+
+window.addEventListener("error", function(event) {
+
+  console.error(
+    "[網頁 JavaScript 錯誤]",
+    event.message,
+    event.filename,
+    event.lineno
+  );
+
+});
+
+window.addEventListener("unhandledrejection", function(event) {
+
+  console.error(
+    "[未處理的 Promise 錯誤]",
+    event.reason
+  );
+
+});
+
+console.log("[AR] 網頁程式初始化完成。");
 
 </script>
 
