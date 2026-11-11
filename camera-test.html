@@ -1,0 +1,89 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iPad 相機測試</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: sans-serif;
+      background: #222;
+      color: white;
+    }
+
+    button {
+      padding: 12px 20px;
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+
+    video {
+      width: 100%;
+      max-height: 70vh;
+      background: black;
+      object-fit: contain;
+      display: block;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+  </style>
+</head>
+<body>
+  <h2>iPad 相機測試</h2>
+  <button id="start">啟動相機</button>
+  <video id="preview" autoplay muted playsinline></video>
+  <pre id="result">尚未啟動</pre>
+
+  <script>
+    const video = document.getElementById("preview");
+    const result = document.getElementById("result");
+
+    document.getElementById("start").addEventListener("click", async () => {
+      try {
+        result.textContent = "正在取得相機權限……";
+
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("瀏覽器不支援 getUserMedia，或目前不是安全連線。");
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" }
+          },
+          audio: false
+        });
+
+        video.srcObject = stream;
+        video.setAttribute("playsinline", "");
+        video.muted = true;
+
+        await video.play();
+
+        const track = stream.getVideoTracks()[0];
+
+        result.textContent =
+          "相機已取得\n" +
+          "影片播放狀態：" + video.paused + "\n" +
+          "影片寬度：" + video.videoWidth + "\n" +
+          "影片高度：" + video.videoHeight + "\n" +
+          "相機狀態：" + track.readyState + "\n" +
+          "相機設定：" + JSON.stringify(track.getSettings(), null, 2);
+
+      } catch (error) {
+        result.textContent =
+          "相機啟動失敗\n" +
+          "錯誤名稱：" + error.name + "\n" +
+          "錯誤訊息：" + error.message;
+
+        console.error(error);
+      }
+    });
+  </script>
+</body>
+</html>
