@@ -1,1 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>大萍水箱 AR 自然實驗平台</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  
+  <!-- 載入 A-Frame 與 MindAR 套件 -->
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-aframe.prod.js"></script>
 
+  <style>
+    body { margin: 0; overflow: hidden; font-family: "Microsoft JhengHei", sans-serif; background: #000; }
+    
+    #guide-panel {
+      position: absolute; top: 10px; left: 10px; right: 10px;
+      background: rgba(255, 255, 255, 0.93);
+      padding: 12px 16px; border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25); z-index: 1000;
+      pointer-events: none;
+    }
+    #guide-panel h3 { margin: 0 0 6px 0; color: #2e7d32; font-size: 16px; }
+    #guide-panel p { margin: 0; font-size: 13px; color: #333; line-height: 1.4; }
+
+    /* 水位控制面板（預設隱藏，掃描到圖卡才顯示） */
+    #water-control-panel {
+      display: none;
+      position: absolute; bottom: 80px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8); color: white;
+      padding: 12px 20px; border-radius: 25px;
+      z-index: 1000; align-items: center; gap: 12px;
+      width: 82%; max-width: 420px;
+    }
+    #water-control-panel label { font-size: 14px; font-weight: bold; white-space: nowrap; }
+    #water-control-panel input { width: 100%; cursor: pointer; }
+
+    #open-sheet-btn {
+      position: absolute; bottom: 20px; right: 20px;
+      background: #0288d1; color: white; border: none;
+      padding: 12px 22px; border-radius: 25px; font-size: 15px; font-weight: bold;
+      cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1000;
+    }
+
+    #modal {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.65); z-index: 10000;
+      justify-content: center; align-items: center;
+    }
+    .modal-box {
+      background: white; padding: 22px; border-radius: 12px;
+      width: 90%; max-width: 480px; max-height: 85vh; overflow-y: auto;
+    }
+    .form-item { margin-bottom: 14px; }
+    .form-item label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 14px; color: #333; }
+    .form-item input, .form-item select, .form-item textarea {
+      width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px;
+    }
+    .btn-submit { background: #4CAF50; color: white; border: none; padding: 12px; border-radius: 6px; width: 100%; font-size: 16px; font-weight: bold; cursor: pointer; }
+    .btn-close { background: #888; color: white; border: none; padding: 4px 10px; border-radius: 4px; float: right; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <div id="guide-panel">
+    <h3>🔬 自然實驗任務：水生植物觀察</h3>
+    <p>1. 請開啟相機，<b>對準學習單上的大萍圖案</b>進行掃描。<br>
+       2. 成功對焦圖卡後，畫面會浮現 3D 水箱，可移動下方<b>水位滑桿</b>進行觀察。<br>
+       3. 觀察完畢點擊右下角按鈕填寫學習單。</p>
+  </div>
+
+  <div id="water-control-panel">
+    <label for="waterLevel">水箱水位：</label>
+    <input type="range" id="waterLevel" min="1.0" max="4.0" step="0.1" value="2.5">
+  </div>
+
+  <button id="open-sheet-btn">📝 填寫觀察學習單</button>
+
+  <!-- AR 相機場景：讀取同目錄下的 targets.mind 圖卡檔 -->
+  <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <!-- 🎯 只有相機「掃描到圖卡」時，此處的 3D 模型才會顯示在圖卡上方 -->
+    <a-entity id="mytarget" mindar-image-target="targetIndex: 0">
+      
+      <!-- 1. 透明 3D 水箱 -->
+      <a-box position="0 0 0" width="1" height="1.2" depth="1" material="color: #e0f7fa; transparent: true; opacity: 0.35; side: double"></a-box>
+      
+      <!-- 2. 底層土壤 -->
+      <a-box position="0 -0.55 0" width="0.95" height="0.1" depth="0.95" material="color: #4e342e; roughness: 0.9"></a-box>
+
+      <!-- 3. 動態升降水面 -->
+      <a-plane id="water-surface" position="0 0 0" rotation="-90 0 0" width="0.95" height="0.95" material="color: #0288d1; transparent: true; opacity: 0.5; side: double"></a-plane>
+
+      <!-- 4. 原生幾何大萍 3D 模型 (葉片 + 懸浮鬚根) -->
+      <a-entity id="plant-entity" position="0 0 0">
+        <a-cone position="0 0.08 0" radius-bottom="0.25" radius-top="0.02" height="0.1" material="color: #76c043; side: double"></a-cone>
+        <a-ring position="0 0.13 0" rotation="-90 0 0" radius-inner="0.05" radius-outer="0.28" material="color: #558b2f; side: double"></a-ring>
+
+        <a-cylinder position="0 -0.15 0" radius="0.06" height="0.3" material="color: #3e2723; transparent: true; opacity: 0.85"></a-cylinder>
+        <a-cylinder position="0.05 -0.18 0.03" radius="0.01" height="0.35" material="color: #4e342e"></a-cylinder>
+        <a-cylinder position="-0.04 -0.16 -0.05" radius="0.01" height="0.32" material="color: #4e342e"></a-cylinder>
+        <a-cylinder position="0.03 -0.17 -0.04" radius="0.01" height="0.34" material="color: #4e342e"></a-cylinder>
+      </a-entity>
+
+    </a-entity>
+  </a-scene>
+
+  <!-- 學習單 Modal -->
+  <div id="modal">
+    <div class="modal-box">
+      <button class="btn-close" onclick="closeModal()">✕ 關閉</button>
+      <h3 style="color:#2e7d32; margin-top:0;">📝 大萍水生植物觀察學習單</h3>
+      <form id="reportForm">
+        <div class="form-item">
+          <label>班級 / 座號：</label>
+          <input type="text" id="studentId" placeholder="例：50108" required>
+        </div>
+        <div class="form-item">
+          <label>學生姓名：</label>
+          <input type="text" id="studentName" placeholder="請輸入姓名" required>
+        </div>
+        <div class="form-item">
+          <label>1. 當調高或調低水箱水位時，大萍的莖、葉與懸浮氣根有何變化？</label>
+          <textarea id="waterObs" rows="3" placeholder="請描述葉片是否浮在水面、根部是否有接觸水底土壤..." required></textarea>
+        </div>
+        <div class="form-item">
+          <label>2. 根據觀察，你判斷大萍是屬於哪一類水生植物？</label>
+          <select id="plantType" required>
+            <option value="">-- 請選擇植物類型 --</option>
+            <option value="漂浮性">漂浮性水生植物</option>
+            <option value="挺水性">挺水性水生植物</option>
+            <option value="浮葉性">浮葉性水生植物</option>
+            <option value="沉水性">沉水性水生植物</option>
+          </select>
+        </div>
+        <div class="form-item">
+          <label>3. 請寫出你做出上述判斷的原因與依據：</label>
+          <textarea id="reason" rows="3" placeholder="例如：大萍全株隨水面升降，根部懸浮在水中完全不接觸底土..." required></textarea>
+        </div>
+        <button type="button" class="btn-submit" onclick="submitForm()">提送學習單至老師試算表</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const targetEl = document.querySelector('#mytarget');
+    const waterControlPanel = document.getElementById('water-control-panel');
+
+    // ⭐️ 核心機制：相機「成功掃描到圖卡」時，才顯示水位操作面板
+    targetEl.addEventListener("targetFound", event => {
+      waterControlPanel.style.display = 'flex';
+    });
+
+    // ⭐️ 相機「離開圖卡」時，自動隱藏水位操作面板
+    targetEl.addEventListener("targetLost", event => {
+      waterControlPanel.style.display = 'none';
+    });
+
+    // 水位滑桿控制邏輯
+    const waterLevelInput = document.getElementById('waterLevel');
+    const waterSurface = document.getElementById('water-surface');
+    const plantEntity = document.getElementById('plant-entity');
+
+    waterLevelInput.addEventListener('input', (e) => {
+      const level = parseFloat(e.target.value);
+      const yPos = (level - 2.5) * 0.2;
+      waterSurface.setAttribute('position', `0 ${yPos} 0`);
+      plantEntity.setAttribute('position', `0 ${yPos} 0`);
+    });
+
+    const modal = document.getElementById('modal');
+    document.getElementById('open-sheet-btn').onclick = () => modal.style.display = 'flex';
+    function closeModal() { modal.style.display = 'none'; }
+
+    function submitForm() {
+      const studentId = document.getElementById('studentId').value;
+      const studentName = document.getElementById('studentName').value;
+      const waterObs = document.getElementById('waterObs').value;
+      const plantType = document.getElementById('plantType').value;
+      const reason = document.getElementById('reason').value;
+
+      if (!studentId || !studentName || !plantType) {
+        alert('請完整填寫座號、姓名與判斷結果！');
+        return;
+      }
+
+      // ⬇️ 第 132 列：請貼上您的 Google Apps Script Web App 網址
+      const GAS_URL = "https://script.google.com/macros/s/AKfycbzU0bHeYP-9KeDhbGHaaNPJclP2iwQLOUVRDAJApfINpg_B4_Idm1oDEuNDu_DaXCxp/exec";
+
+      const payload = { studentId, studentName, waterObs, plantType, reason };
+
+      fetch(GAS_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+      .then(() => {
+        alert("觀察學習單已成功提送給老師！");
+        closeModal();
+        document.getElementById('reportForm').reset();
+      })
+      .catch((err) => {
+        alert("提交失敗，請檢查網路連線。");
+      });
+    }
+  </script>
+</body>
+</html>
